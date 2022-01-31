@@ -6,12 +6,14 @@ import java.sql.*;
 
 public class UserDao {
 
-    private final static String DB_URI = "jdbc:mysql://localhost:3306/toby_spring?serverTimezone=UTC&allowPublicKeyRetrieval=true";
-    private final static String USERNAME = "user";
-    private final static String PASSWORD = "123123";
+    private ConnectionMaker connectionMaker;
+
+    public UserDao(ConnectionMaker connectionMaker){
+        this.connectionMaker = connectionMaker;
+    }
 
     public void add(User user) throws ClassNotFoundException, SQLException {
-        Connection c = getConection();
+        Connection c = connectionMaker.makeConnection();
 
         final String insertQuery = "insert into users(id, name, password) values (?,?,?)";
         PreparedStatement ps = c.prepareStatement(insertQuery);
@@ -26,7 +28,7 @@ public class UserDao {
     }
 
     public User get(String id) throws ClassNotFoundException, SQLException{
-        Connection c = getConection();
+        Connection c = connectionMaker.makeConnection();
 
         final String selectQuery = "select * from users where id = ?";
         PreparedStatement ps = c.prepareStatement(selectQuery);
@@ -46,31 +48,29 @@ public class UserDao {
         return user;
     }
 
-    public static void main(String[] args) throws ClassNotFoundException, SQLException {
-        UserDao dao = new UserDao();
+//    private Connection getConection() throws ClassNotFoundException, SQLException {
+//        Class.forName("com.mysql.jdbc.Driver");
+//        Connection c = DriverManager.getConnection(DB_URI, USERNAME, PASSWORD);
+//
+//        return c;
+//    }
 
-        User user = new User();
-        user.setId("whiteship");
-        user.setName("backkiseon");
-        user.setPassword("married");
-
-        dao.add(user);
-
-        System.out.println(user.getId() + " add success");
-
-        User user2 = dao.get(user.getId());
-        System.out.println(user2.getName());
-
-        System.out.println(user2.getPassword());
-
-        System.out.println(user2.getId() + " select success");
+    protected Connection getConection() throws ClassNotFoundException, SQLException {
+        return null;
     }
 
-    private Connection getConection() throws ClassNotFoundException, SQLException {
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection c = DriverManager.getConnection(DB_URI, USERNAME, PASSWORD);
+    public class NUserDao extends UserDao {
 
-        return c;
+        public NUserDao(ConnectionMaker connectionMaker) {
+            super(connectionMaker);
+        }
+    }
+
+    public class DUserDao extends UserDao {
+
+        public DUserDao(ConnectionMaker connectionMaker) {
+            super(connectionMaker);
+        }
     }
 
 }
