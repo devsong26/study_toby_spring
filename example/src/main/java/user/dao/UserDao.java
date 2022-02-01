@@ -55,22 +55,4 @@ public class UserDao {
 //        return c;
 //    }
 
-    protected Connection getConection() throws ClassNotFoundException, SQLException {
-        return null;
-    }
-
-    public class NUserDao extends UserDao {
-
-        public NUserDao(ConnectionMaker connectionMaker) {
-            super(connectionMaker);
-        }
-    }
-
-    public class DUserDao extends UserDao {
-
-        public DUserDao(ConnectionMaker connectionMaker) {
-            super(connectionMaker);
-        }
-    }
-
 }
