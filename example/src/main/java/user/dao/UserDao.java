@@ -1,11 +1,11 @@
 package user.dao;
 
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import user.domain.User;
 
 import java.sql.*;
 
 public class UserDao {
-
     private ConnectionMaker connectionMaker;
 
     public UserDao(ConnectionMaker connectionMaker){
