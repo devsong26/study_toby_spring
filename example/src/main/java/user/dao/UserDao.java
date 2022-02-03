@@ -3,17 +3,22 @@ package user.dao;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import user.domain.User;
 
+import javax.sql.DataSource;
 import java.sql.*;
 
 public class UserDao {
-    private ConnectionMaker connectionMaker;
+    private DataSource dataSource;
 
-    public UserDao(ConnectionMaker connectionMaker){
-        this.connectionMaker = connectionMaker;
+    public void setDataSource(DataSource dataSource){
+        this.dataSource = dataSource;
     }
 
-    public void add(User user) throws ClassNotFoundException, SQLException {
-        Connection c = connectionMaker.makeConnection();
+//    public UserDao(ConnectionMaker connectionMaker){
+//        this.connectionMaker = connectionMaker;
+//    }
+
+    public void add(User user) throws SQLException {
+        Connection c = dataSource.getConnection();
 
         final String insertQuery = "insert into users(id, name, password) values (?,?,?)";
         PreparedStatement ps = c.prepareStatement(insertQuery);
@@ -27,8 +32,8 @@ public class UserDao {
         c.close();
     }
 
-    public User get(String id) throws ClassNotFoundException, SQLException{
-        Connection c = connectionMaker.makeConnection();
+    public User get(String id) throws SQLException{
+        Connection c = dataSource.getConnection();
 
         final String selectQuery = "select * from users where id = ?";
         PreparedStatement ps = c.prepareStatement(selectQuery);

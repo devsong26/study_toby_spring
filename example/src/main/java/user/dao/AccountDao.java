@@ -1,7 +1,7 @@
-package user.dao;
-
-public class AccountDao {
-    public AccountDao(ConnectionMaker connectionMaker) {
-
-    }
-}
+//package user.dao;
+//
+//public class AccountDao {
+//    public AccountDao(ConnectionMaker connectionMaker) {
+//
+//    }
+//}

@@ -1,6 +1,6 @@
-package user.dao;
-
-public class MessageDao {
-    public MessageDao(ConnectionMaker connectionMaker) {
-    }
-}
+//package user.dao;
+//
+//public class MessageDao {
+//    public MessageDao(ConnectionMaker connectionMaker) {
+//    }
+//}

@@ -1,16 +1,32 @@
-//package user.dao;
+package user.dao;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
+
+import javax.sql.DataSource;
+
+@Configuration
+public class DaoFactory{
+
+//    @Value("${db.uri}")
+//    private String uri;
 //
-//import org.springframework.context.annotation.Bean;
-//import org.springframework.context.annotation.Configuration;
+//    @Value("${db.username}")
+//    private String username;
 //
-//@Configuration
-//public class DaoFactory {
-//
-//    @Bean
-//    public UserDao userDao() {
-//        return new UserDao(connectionMaker());
-//    }
-//
+//    @Value("${db.password}")
+//    private String password;
+
+
+    @Bean
+    public UserDao userDao() {
+        UserDao userDao = new UserDao();
+        userDao.setDataSource(dataSource());
+        return userDao;
+    }
+
 //    public AccountDao accountDao(){
 //        return new AccountDao(connectionMaker());
 //    }
@@ -18,10 +34,17 @@
 //    public MessageDao messageDao(){
 //        return new MessageDao(connectionMaker());
 //    }
-//
-//    @Bean
-//    public ConnectionMaker connectionMaker(){
-//        return new DConnectionMaker();
-//    }
-//
-//}
+
+    @Bean
+    public DataSource dataSource(){
+        SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
+
+        dataSource.setDriverClass(com.mysql.jdbc.Driver.class);
+        dataSource.setUrl("jdbc:mysql://localhost:3306/toby_spring?serverTimezone=UTC&allowPublicKeyRetrieval=true");
+        dataSource.setUsername("user");
+        dataSource.setPassword("123123");
+
+        return dataSource;
+    }
+
+}
