@@ -1,6 +1,7 @@
 package user.dao;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
@@ -8,17 +9,17 @@ import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import javax.sql.DataSource;
 
 @Configuration
+@ConfigurationProperties
 public class DaoFactory{
 
-//    @Value("${db.uri}")
-//    private String uri;
-//
-//    @Value("${db.username}")
-//    private String username;
-//
-//    @Value("${db.password}")
-//    private String password;
+    @Value("${db.uri}")
+    private String uri;
 
+    @Value("${db.username}")
+    private String username;
+
+    @Value("${db.password}")
+    private String password;
 
     @Bean
     public UserDao userDao() {
@@ -40,9 +41,9 @@ public class DaoFactory{
         SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
 
         dataSource.setDriverClass(com.mysql.jdbc.Driver.class);
-        dataSource.setUrl("jdbc:mysql://localhost:3306/toby_spring?serverTimezone=UTC&allowPublicKeyRetrieval=true");
-        dataSource.setUsername("user");
-        dataSource.setPassword("123123");
+        dataSource.setUrl(uri);
+        dataSource.setUsername(username);
+        dataSource.setPassword(password);
 
         return dataSource;
     }

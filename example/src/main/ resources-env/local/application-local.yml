@@ -1,0 +1,4 @@
+db:
+  uri: jdbc:mysql://localhost:3306/testdb?serverTimezone=UTC&allowPublicKeyRetrieval=true
+  username: user
+  password: 123123

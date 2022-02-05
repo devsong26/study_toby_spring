@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:2.6.3'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
     implementation 'mysql:mysql-connector-java:8.0.25'
 
@@ -24,4 +25,14 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+ext.profile = (!project.hasProperty('profile') || !profile) ? 'local' : profile
+
+sourceSets {
+    main {
+        resources {
+            srcDirs "src/main/resources", "src/main/resources-env/${profile}"
+        }
+    }
 }
