@@ -28,11 +28,18 @@ test {
 }
 
 ext.profile = (!project.hasProperty('profile') || !profile) ? 'local' : profile
+println profile
 
 sourceSets {
     main {
         resources {
-            srcDirs "src/main/resources", "src/main/resources-env/${profile}"
+            srcDirs "src/main/resources", "src/main/resources-env/$profile"
         }
+    }
+}
+
+tasks {
+    processResources {
+        duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
     }
 }

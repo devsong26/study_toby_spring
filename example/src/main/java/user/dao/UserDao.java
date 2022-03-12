@@ -1,32 +1,20 @@
 package user.dao;
 
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.RowMapper;
 import user.domain.User;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 public class UserDao {
 
-    private DataSource dataSource;
-
-    private JdbcContext jdbcContext;
-
     private JdbcTemplate jdbcTemplate;
 
-    public void setJdbcContext(JdbcContext jdbcContext){
-        this.jdbcContext = jdbcContext;
-    }
-
     public void setDataSource(DataSource dataSource){
-        this.dataSource = dataSource;
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
     public void add(User user) throws SQLException {
@@ -35,35 +23,11 @@ public class UserDao {
     }
 
     public User get(String id) throws SQLException{
-        Connection c = dataSource.getConnection();
-
-        final String selectQuery = "select * from users where id = ?";
-        PreparedStatement ps = c.prepareStatement(selectQuery);
-        ps.setString(1, id);
-
-        ResultSet rs = ps.executeQuery();
-        User user = null;
-        if(rs.next()){
-            user = new User();
-            user.setId(rs.getString("id"));
-            user.setName(rs.getString("name"));
-            user.setPassword(rs.getString("password"));
-        }
-
-        rs.close();
-        ps.close();
-        c.close();
-
-        if(user == null){
-            throw new EmptyResultDataAccessException(1);
-        }
-
-        return user;
+        return this.jdbcTemplate.queryForObject("select * from users where id = ?",
+                new Object[] {id}, userMapper);
     }
 
     public void deleteAll() throws SQLException{
-//        jdbcContext.workWithStatementStrategy(c -> c.prepareStatement("delete from users"));
-//        this.jdbcContext.executeSql("delete from users");
         this.jdbcTemplate.update("delete from users");
     }
 
@@ -71,9 +35,21 @@ public class UserDao {
         return this.jdbcTemplate.queryForObject("select count(*) from users", Integer.TYPE);
     }
 
-    public void setJdbcTemplate(DataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-
-        this.dataSource = dataSource;
+    public List<User> getAll() {
+        return this.jdbcTemplate.query("select * from users order by id",
+                userMapper);
     }
+
+    private RowMapper<User> userMapper =
+            new RowMapper<User>() {
+                @Override
+                public User mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    User user = new User();
+                    user.setId(rs.getString("id"));
+                    user.setName(rs.getString("name"));
+                    user.setPassword(rs.getString("password"));
+                    return user;
+                }
+            };
+
 }
