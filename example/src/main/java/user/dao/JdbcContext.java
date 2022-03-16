@@ -9,7 +9,7 @@ public class JdbcContext {
 
     private DataSource dataSource;
 
-    public void setDatasource(DataSource dataSource){
+    public void setDataSource(DataSource dataSource){
         this.dataSource = dataSource;
     }
 

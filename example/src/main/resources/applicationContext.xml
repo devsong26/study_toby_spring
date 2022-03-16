@@ -7,7 +7,7 @@
     <bean id="dataSource"
           class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
         <property name="driverClass" value="com.mysql.jdbc.Driver" />
-        <property name="url" value="jdbc:mysql://localhost:3306/toby_spring?serverTimezone=UTC" />
+        <property name="url" value="jdbc:mysql://localhost:3306/testdb?serverTimezone=UTC" />
         <property name="username" value="user"/>
         <property name="password" value="123123"/>
     </bean>
@@ -18,6 +18,10 @@
 
     <bean id="jdbcContext" class="user.dao.JdbcContext">
         <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <bean id="userService" class="user.service.UserService">
+        <property name="userDao" ref="userDao"/>
     </bean>
 
 </beans>
