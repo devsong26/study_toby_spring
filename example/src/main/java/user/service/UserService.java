@@ -1,25 +1,50 @@
 package user.service;
 
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import user.dao.UserDao;
 import user.domain.Level;
 import user.domain.User;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.util.List;
 
 public class UserService {
 
     private UserDao userDao;
 
+    private DataSource dataSource;
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     public void setUserDao(UserDao userDao){
         this.userDao = userDao;
     }
 
-    public void upgradeLevels(){
-        List<User> users = userDao.getAll();
-        for(User user : users){
-            if(canUpgradeLevel(user))
-                upgradeLevel(user);
+    public void upgradeLevels() throws Exception{
+        TransactionSynchronizationManager.initSynchronization();
+        Connection c = DataSourceUtils.getConnection(dataSource);
+        c.setAutoCommit(false);
+
+        try{
+            List<User> users = userDao.getAll();
+            for(User user : users){
+                if(canUpgradeLevel(user))
+                    upgradeLevel(user);
+            }
+            c.commit();
+        }catch(Exception e){
+            c.rollback();
+            throw e;
+        }finally {
+            DataSourceUtils.releaseConnection(c, dataSource);
+            TransactionSynchronizationManager.unbindResource(this.dataSource);
+            TransactionSynchronizationManager.clearSynchronization();
         }
+
     }
 
     public static final int MIN_LOGCOUNT_FOR_SILVER = 50;
