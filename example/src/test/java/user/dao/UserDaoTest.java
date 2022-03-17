@@ -40,9 +40,9 @@ public class UserDaoTest {
 
     @BeforeEach
     public void setUp(){
-        user1 = new User("1", "a", "b", Level.BASIC, 1, 0);
-        user2 = new User("2", "c", "d", Level.SILVER, 55, 10);
-        user3 = new User("3", "e", "f", Level.GOLD, 100, 40);
+        user1 = new User("1", "a", "b", Level.BASIC, 1, 0, "a@gmail.com");
+        user2 = new User("2", "c", "d", Level.SILVER, 55, 10, "b@gmail.com");
+        user3 = new User("3", "e", "f", Level.GOLD, 100, 40, "c@gmail.com");
     }
 
     @AfterEach

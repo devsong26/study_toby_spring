@@ -5,6 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mail.MailException;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -13,18 +17,22 @@ import user.domain.Level;
 import user.domain.User;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
-import static user.service.UserService.MIN_LOGCOUNT_FOR_SILVER;
-import static user.service.UserService.MIN_RECCOMEND_FOR_GOLD;
+import static user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
+import static user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 
 @SpringBootTest
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = "/applicationContext.xml")
 public class UserServiceTest {
+
+    @Autowired
+    private UserServiceImpl userServiceImpl;
 
     @Autowired
     private UserService userService;
@@ -40,29 +48,41 @@ public class UserServiceTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
+    @Autowired
+    private MailSender mailSender;
+
     @BeforeEach
     public void setUp(){
         users = Arrays.asList(
-            new User("a", "a", "p1", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER -1, 0),
-            new User("b", "b", "p2", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0),
-            new User("c", "c", "p3", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD - 1),
-            new User("d", "d", "p4", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD),
-            new User("e", "e", "p5", Level.GOLD, 100, Integer.MAX_VALUE)
+            new User("a", "a", "p1", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER -1, 0, "a@gmail.com"),
+            new User("b", "b", "p2", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0, "b@gmail.com"),
+            new User("c", "c", "p3", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD - 1, "c@gmail.com"),
+            new User("d", "d", "p4", Level.SILVER, 60, MIN_RECCOMEND_FOR_GOLD, "d@gmail.com"),
+            new User("e", "e", "p5", Level.GOLD, 100, Integer.MAX_VALUE, "e@gmail.com")
         );
     }
 
     @Test
+    @DirtiesContext
     public void upgradeLevels() throws Exception {
         userDao.deleteAll();
         for(User user: users) userDao.add(user);
 
-        userService.upgradeLevels();
+        MockMailSender mockMailSender = new MockMailSender();
+        userServiceImpl.setMailSender(mockMailSender);
+
+        userServiceImpl.upgradeLevels();
 
         checkLevelUpgrade(users.get(0), false);
         checkLevelUpgrade(users.get(1), true);
         checkLevelUpgrade(users.get(2), false);
         checkLevelUpgrade(users.get(3), true);
         checkLevelUpgrade(users.get(4), false);
+
+        List<String> request = mockMailSender.getRequests();
+        assertEquals(request.size(), 2);
+        assertEquals(request.get(0), users.get(1).getEmail());
+        assertEquals(request.get(1), users.get(3).getEmail());
     }
 
     private void checkLevelUpgrade(User user, boolean upgraded){
@@ -83,8 +103,8 @@ public class UserServiceTest {
         User userWithoutLevel = users.get(0);
         userWithoutLevel.setLevel(null);
 
-        userService.add(userWithLevel);
-        userService.add(userWithoutLevel);
+        userServiceImpl.add(userWithLevel);
+        userServiceImpl.add(userWithoutLevel);
 
         User userWithLevelRead = userDao.get(userWithLevel.getId());
         User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
@@ -93,7 +113,7 @@ public class UserServiceTest {
         assertEquals(userWithoutLevelRead.getLevel(), userWithoutLevel.getLevel());
     }
 
-    static class TestUserService extends UserService{
+    static class TestUserService extends UserServiceImpl {
         private String id;
         private TestUserService(String id){
             this.id = id;
@@ -108,19 +128,42 @@ public class UserServiceTest {
 
     @Test
     public void upgradeAllOrNothing() {
-        UserService testUserService = new TestUserService(users.get(3).getId());
+        UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(this.userDao);
         testUserService.setTransactionManager(this.transactionManager);
+        testUserService.setMailSender(this.mailSender);
+
+        UserServiceTx txUserService = new UserServiceTx();
+        txUserService.setTransactionManager(transactionManager);
+        txUserService.setUserService(testUserService);
 
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
 
         try{
-            testUserService.upgradeLevels();
+            txUserService.upgradeLevels();
             fail("TestUserServiceException expected");
         }catch(TestUserServiceException e){}
 
         checkLevelUpgrade(users.get(1), false);
+    }
+
+    static class MockMailSender implements MailSender {
+        private List<String> requests = new ArrayList<String>();
+
+        public List<String> getRequests() {
+            return requests;
+        }
+
+        @Override
+        public void send(SimpleMailMessage simpleMessage) throws MailException {
+            requests.add(simpleMessage.getTo()[0]);
+        }
+
+        @Override
+        public void send(SimpleMailMessage... simpleMessages) throws MailException {
+
+        }
     }
 
 }

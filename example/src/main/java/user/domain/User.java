@@ -7,9 +7,19 @@ public class User {
     private String id;
     private String name;
     private String password;
-
     private Level level;
     private Date lastUpdated;
+    private int login;
+    private int recommend;
+    private String email;
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
     public int getLogin() {
         return login;
@@ -18,9 +28,6 @@ public class User {
     public int getRecommend() {
         return recommend;
     }
-
-    private int login;
-    private int recommend;
 
     public String getId() {
         return id;
@@ -46,12 +53,6 @@ public class User {
         this.password = password;
     }
 
-    public User(String id, String name, String password) {
-        this.id = id;
-        this.name = name;
-        this.password = password;
-    }
-
     public User(){}
 
     public Level getLevel(){
@@ -62,13 +63,14 @@ public class User {
         this.level = level;
     }
 
-    public User(String id, String name, String password, Level level, int login, int recommend) {
+    public User(String id, String name, String password, Level level, int login, int recommend, String email) {
         this.id = id;
         this.name = name;
         this.password = password;
         this.level = level;
         this.login = login;
         this.recommend = recommend;
+        this.email = email;
     }
 
     public void setLogin(int login) {
