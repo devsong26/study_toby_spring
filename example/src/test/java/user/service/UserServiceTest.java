@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.PlatformTransactionManager;
 import user.dao.UserDaoJdbc;
 import user.domain.Level;
 import user.domain.User;
@@ -35,6 +36,9 @@ public class UserServiceTest {
     private DataSource dataSource;
 
     List<User> users;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     public void setUp(){
@@ -103,10 +107,10 @@ public class UserServiceTest {
     static class TestUserServiceException extends RuntimeException{}
 
     @Test
-    public void upgradeAllOrNothing() throws Exception {
+    public void upgradeAllOrNothing() {
         UserService testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(this.userDao);
-        testUserService.setDataSource(this.dataSource);
+        testUserService.setTransactionManager(this.transactionManager);
 
         userDao.deleteAll();
         for(User user : users) userDao.add(user);

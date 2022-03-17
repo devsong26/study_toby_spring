@@ -1,6 +1,9 @@
 package user.service;
 
 import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import user.dao.UserDao;
 import user.domain.Level;
@@ -9,12 +12,19 @@ import user.domain.User;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.List;
+import java.util.Properties;
 
 public class UserService {
 
     private UserDao userDao;
 
     private DataSource dataSource;
+
+    private PlatformTransactionManager transactionManager;
+
+    public void setTransactionManager(PlatformTransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
+    }
 
     public void setDataSource(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -24,10 +34,10 @@ public class UserService {
         this.userDao = userDao;
     }
 
-    public void upgradeLevels() throws Exception{
-        TransactionSynchronizationManager.initSynchronization();
-        Connection c = DataSourceUtils.getConnection(dataSource);
-        c.setAutoCommit(false);
+    public void upgradeLevels(){
+        TransactionStatus status =
+                this.transactionManager.getTransaction(
+                        new DefaultTransactionDefinition());
 
         try{
             List<User> users = userDao.getAll();
@@ -35,16 +45,11 @@ public class UserService {
                 if(canUpgradeLevel(user))
                     upgradeLevel(user);
             }
-            c.commit();
-        }catch(Exception e){
-            c.rollback();
+            this.transactionManager.commit(status);
+        }catch(RuntimeException e){
+            this.transactionManager.rollback(status);
             throw e;
-        }finally {
-            DataSourceUtils.releaseConnection(c, dataSource);
-            TransactionSynchronizationManager.unbindResource(this.dataSource);
-            TransactionSynchronizationManager.clearSynchronization();
         }
-
     }
 
     public static final int MIN_LOGCOUNT_FOR_SILVER = 50;
@@ -64,6 +69,12 @@ public class UserService {
     protected void upgradeLevel(User user){
         user.upgradeLevel();
         userDao.update(user);
+        sendUpgradeEmail(user);
+    }
+
+    private void sendUpgradeEmail(User user) {
+//        Properties props = new Properties();
+//        props.put("mail.smtp.host", );
     }
 
     public void add(User user) {
