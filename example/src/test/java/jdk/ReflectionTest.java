@@ -1,8 +1,12 @@
 package jdk;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
@@ -96,16 +100,20 @@ public class ReflectionTest {
         /**
          * 다이내믹 프록시로부터 전달받은 요청을 다시 타깃 오브젝트에 위임해야 하기 때문에 타깃 오브젝트를 주입받아 둔다.
          */
-        Hello target;
-
-        public UppercaseHandler(Hello target){
+        Object target;
+        public UppercaseHandler(Object target){
             this.target = target;
-        }
+        } // 어떤 종류의 인터페이스를 구현한 타깃에도 적용 가능하도록 Object 타입으로 수정
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            String ret = (String)method.invoke(target, args); // 타깃으로 위임, 인터페이스의 메서드 호출에 모두 적용된다.
-            return ret.toUpperCase();
+            // 호출한 메서드의 리턴 타입이 String인 경우만 대문자 변경 기능을 적용하도록 수정
+            Object ret = method.invoke(target, args);
+            if(ret instanceof String && method.getName().startsWith("say")) { //리턴 타입과 메서드 이름이 일치하는 경우에만 부가기능을 적용한다.
+                return ((String)ret).toUpperCase();
+            }else{
+                return ret; //조건이 일치하지 않으면 타깃 오브젝트의 호출 결과를 그대로 리턴한다.
+            }
         }
     }
 
@@ -118,6 +126,47 @@ public class ReflectionTest {
         );
 
         assertNotNull(proxyHello);
+    }
+
+    public class TransactionHandler implements InvocationHandler {
+        private Object target; //부가기능을 제공할 타깃 오브젝트, 어떤 타입의 오브젝트에도 적용 가능하다.
+        private PlatformTransactionManager transactionManager; //트랜잭션 기능을 제공하는 데 필요한 트랜잭션 매니저
+        private String pattern; // 트랜잭션을 적용할 메서드 이름 패턴
+
+        public void setTarget(Object target) {
+            this.target = target;
+        }
+
+        public void setTransactionManager(PlatformTransactionManager transactionManager) {
+            this.transactionManager = transactionManager;
+        }
+
+        public void setPattern(String pattern) {
+            this.pattern = pattern;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if(method.getName().startsWith(pattern)){
+                return invokeInTransaction(method, args);
+            }else{
+                return method.invoke(target, args);
+            }
+        }
+
+        private Object invokeInTransaction(Method method, Object[] args) throws Throwable{
+            TransactionStatus status =
+                    this.transactionManager.getTransaction(new DefaultTransactionDefinition());
+
+            try{
+                Object ret = method.invoke(target, args);
+                this.transactionManager.commit(status); //트랜잭션을 시작하고 타깃 오브젝트의 메서드를 호출한다. 예외가 발생하지 않았다면 커밋한다.
+                return ret;
+            }catch (InvocationTargetException e){
+                this.transactionManager.rollback(status); // 예외가 발생하면 트랜잭션을 콜백한다.
+                throw e.getTargetException();
+            }
+        }
     }
 
 }
