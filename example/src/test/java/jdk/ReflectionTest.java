@@ -128,7 +128,7 @@ public class ReflectionTest {
         assertNotNull(proxyHello);
     }
 
-    public class TransactionHandler implements InvocationHandler {
+    public static class TransactionHandler implements InvocationHandler {
         private Object target; //부가기능을 제공할 타깃 오브젝트, 어떤 타입의 오브젝트에도 적용 가능하다.
         private PlatformTransactionManager transactionManager; //트랜잭션 기능을 제공하는 데 필요한 트랜잭션 매니저
         private String pattern; // 트랜잭션을 적용할 메서드 이름 패턴
