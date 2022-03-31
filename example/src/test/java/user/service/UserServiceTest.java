@@ -7,9 +7,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -17,6 +19,7 @@ import user.dao.UserDao;
 import user.dao.UserDaoJdbc;
 import user.domain.Level;
 import user.domain.User;
+import user.factory.TxProxyFactoryBean;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Proxy;
@@ -54,6 +57,9 @@ public class UserServiceTest {
 
     @Autowired
     private MailSender mailSender;
+
+    @Autowired
+    private ApplicationContext context;
 
     @BeforeEach
     public void setUp(){
@@ -147,21 +153,17 @@ public class UserServiceTest {
     static class TestUserServiceException extends RuntimeException{}
 
     @Test
-    public void upgradeAllOrNothing() {
-        UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
+    @DirtiesContext
+    public void upgradeAllOrNothing() throws Exception {
+        TestUserService testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(this.userDao);
-        testUserService.setTransactionManager(this.transactionManager);
         testUserService.setMailSender(this.mailSender);
 
-        // 트랜잭션 핸들러가 필요한 정보와 오브젝트를 DI 해준다.
-        TransactionHandler txHandler = new TransactionHandler();
-        txHandler.setTarget(testUserService);
-        txHandler.setTransactionManager(transactionManager);
-        txHandler.setPattern("upgradeLevels");
-
-        // UserService 인터페이스 타입의 다이내믹 프록시 생성
-        UserService txUserService = (UserService) Proxy.newProxyInstance(
-            getClass().getClassLoader(), new Class[]{UserService.class}, txHandler);
+        // 프록시 빈 자체를 가져와야 하므로 빈 이름에 &를 반드시 넣어야 한다.
+        TxProxyFactoryBean txProxyFactoryBean =
+                context.getBean("&userService", TxProxyFactoryBean.class); // 테스트용 타깃 주입
+        txProxyFactoryBean.setTarget(testUserService);
+        UserService txUserService = (UserService) txProxyFactoryBean.getObject();
 
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
