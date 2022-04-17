@@ -1,11 +1,9 @@
 package user.service;
 
-import jdk.ReflectionTest.TransactionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
@@ -20,14 +18,14 @@ import user.dao.UserDao;
 import user.dao.UserDaoJdbc;
 import user.domain.Level;
 import user.domain.User;
-import user.factory.TxProxyFactoryBean;
 
 import javax.sql.DataSource;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
@@ -39,11 +37,14 @@ import static user.service.UserServiceImpl.MIN_RECCOMEND_FOR_GOLD;
 @ContextConfiguration(locations = "/applicationContext.xml")
 public class UserServiceTest {
 
-    @Autowired
-    private UserServiceImpl userServiceImpl;
+//    @Autowired
+//    private UserServiceImpl userServiceImpl;
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserService testUserService;
 
     @Autowired
     private UserDaoJdbc userDao;
@@ -130,8 +131,8 @@ public class UserServiceTest {
         User userWithoutLevel = users.get(0);
         userWithoutLevel.setLevel(null);
 
-        userServiceImpl.add(userWithLevel);
-        userServiceImpl.add(userWithoutLevel);
+        userService.add(userWithLevel);
+        userService.add(userWithoutLevel);
 
         User userWithLevelRead = userDao.get(userWithLevel.getId());
         User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
@@ -156,23 +157,13 @@ public class UserServiceTest {
     @Test
     @DirtiesContext
     public void upgradeAllOrNothing() throws Exception {
-        TestUserService testUserService = new TestUserService(users.get(3).getId());
-        testUserService.setUserDao(this.userDao);
-        testUserService.setMailSender(this.mailSender);
-
-        // 프록시 빈 자체를 가져와야 하므로 빈 이름에 &를 반드시 넣어야 한다.
-        ProxyFactoryBean txProxyFactoryBean =
-                context.getBean("&userService", ProxyFactoryBean.class); // 테스트용 타깃 주입
-        txProxyFactoryBean.setTarget(testUserService);
-        UserService txUserService = (UserService) txProxyFactoryBean.getObject();
-
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
 
         try{
-            txUserService.upgradeLevels();
+            this.testUserService.upgradeLevels();
             fail("TestUserServiceException expected");
-        }catch(TestUserServiceException e){}
+        }catch (TestUserServiceException e){}
 
         checkLevelUpgrade(users.get(1), false);
     }
@@ -193,6 +184,20 @@ public class UserServiceTest {
         public void send(SimpleMailMessage... simpleMessages) throws MailException {
 
         }
+    }
+
+    static class TestUserServiceImpl extends UserServiceImpl{
+        private String id = "madnite1";
+
+        protected void upgradeLevel(User user){
+            if(user.getId().equals(this.id)) throw new TestUserServiceException();
+            super.upgradeLevel(user);
+        }
+    }
+
+    @Test
+    void advisorAutoProxyCreator() {
+        assertThat(testUserService, is(java.lang.reflect.Proxy.class));
     }
 
 }
